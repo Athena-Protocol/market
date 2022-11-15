@@ -15,6 +15,7 @@ interface PriceOutputProps {
   hasPreviousOrderSelectedComputeAsset: boolean
   hasDatatokenSelectedComputeAsset: boolean
   algorithmConsumeDetails: AccessDetails
+  claimConsumeDetails: AccessDetails
   selectedComputeAssetTimeout: string
   datasetOrderPrice?: string
   algoOrderPrice?: string
@@ -70,6 +71,7 @@ export default function PriceOutput({
   hasPreviousOrderSelectedComputeAsset,
   hasDatatokenSelectedComputeAsset,
   algorithmConsumeDetails,
+  claimConsumeDetails,
   selectedComputeAssetTimeout,
   datasetOrderPrice,
   algoOrderPrice,
@@ -109,6 +111,19 @@ export default function PriceOutput({
               symbol={symbol}
               sign="+"
               type="ALGORITHM"
+            />
+            <Row
+              hasPreviousOrder={hasPreviousOrderSelectedComputeAsset}
+              hasDatatoken={hasDatatokenSelectedComputeAsset}
+              price={new Decimal(
+                algoOrderPrice || claimConsumeDetails?.price || 0
+              )
+                .toDecimalPlaces(MAX_DECIMALS)
+                .toString()}
+              timeout={selectedComputeAssetTimeout}
+              symbol={symbol}
+              sign="+"
+              type="CLAIM"
             />
             <Row
               price={providerFeeAmount} // initializeCompute.provider fee amount

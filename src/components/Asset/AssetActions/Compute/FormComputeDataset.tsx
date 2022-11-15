@@ -45,6 +45,7 @@ export default function FormStartCompute({
   consumableFeedback,
   datasetOrderPriceAndFees,
   algoOrderPriceAndFees,
+  claimOrderPriceAndFees,
   providerFeeAmount,
   validUntil
 }: {
@@ -75,6 +76,7 @@ export default function FormStartCompute({
   consumableFeedback: string
   datasetOrderPriceAndFees?: OrderPriceAndFees
   algoOrderPriceAndFees?: OrderPriceAndFees
+  claimOrderPriceAndFees?: OrderPriceAndFees
   providerFeeAmount?: string
   validUntil?: string
 }): ReactElement {
@@ -94,6 +96,9 @@ export default function FormStartCompute({
   const [algoOrderPrice, setAlgoOrderPrice] = useState(
     selectedAlgorithmAsset?.accessDetails?.price
   )
+  const [claimOrderPrice, setClaimOrderPrice] = useState(
+    selectedClaimAsset?.accessDetails?.price
+  )
   const [isBalanceSufficient, setIsBalanceSufficient] = useState<boolean>(false)
 
   function getAlgorithmAsset(algorithmId: string): Asset {
@@ -105,7 +110,6 @@ export default function FormStartCompute({
   }
 
   function getClaimAsset(claimId: string): Asset {
-    debugger
     let assetDdo = null
     ddoListClaims.forEach((ddo: Asset) => {
       if (ddo.id === claimId) assetDdo = ddo
@@ -117,7 +121,6 @@ export default function FormStartCompute({
     if (!values.algorithm || !accountId || !isConsumable) return
 
     async function fetchAlgorithmAssetExtended() {
-      debugger
       const algorithmAsset = getAlgorithmAsset(values.algorithm)
       const accessDetails = await getAccessDetails(
         algorithmAsset.chainId,
@@ -135,42 +138,41 @@ export default function FormStartCompute({
   }, [values.algorithm, accountId, isConsumable])
 
   useEffect(() => {
-    if (!values.algorithm || !accountId || !isConsumable) return
+    if (!values.claim || !accountId || !isConsumable) return
 
     async function fetchClaimAssetExtended() {
-      debugger
-      const algorithmAsset = getClaimAsset(values.claim)
-      // const algorithmAsset = getAlgorithmAsset(values.algorithm)
-      // const accessDetails = await getAccessDetails(
-      //   algorithmAsset.chainId,
-      //   algorithmAsset.services[0].datatokenAddress,
-      //   algorithmAsset.services[0].timeout,
-      //   accountId
-      // )
-      // const extendedAlgoAsset: AssetExtended = {
-      //   ...algorithmAsset,
-      //   accessDetails
-      // }
-
-      // selectedClaimAsset = extendedAlgoAsset
-
-      setSelectedClaim(algorithmAsset)
+      console.log(values)
+      const claimAsset = getClaimAsset(values.claim)
+      const accessDetails = await getAccessDetails(
+        claimAsset.chainId,
+        claimAsset.services[0].datatokenAddress,
+        claimAsset.services[0].timeout,
+        accountId
+      )
+      const extendedClaimAsset: AssetExtended = {
+        ...claimAsset,
+        accessDetails
+      }
+      setSelectedClaim(extendedClaimAsset)
     }
     fetchClaimAssetExtended()
-  }, [values.algorithm, accountId, isConsumable])
+  }, [values.claim, accountId, isConsumable])
 
   //
   // Set price for calculation output
   //
   useEffect(() => {
     if (!asset?.accessDetails || !selectedAlgorithmAsset?.accessDetails) return
-
+    if (!asset?.accessDetails || !selectedClaimAsset?.accessDetails) return
     setDatasetOrderPrice(
       datasetOrderPriceAndFees?.price || asset.accessDetails.price
     )
     setAlgoOrderPrice(
       algoOrderPriceAndFees?.price ||
         selectedAlgorithmAsset?.accessDetails.price
+    )
+    setClaimOrderPrice(
+      claimOrderPriceAndFees?.price || selectedClaimAsset?.accessDetails.price
     )
     const priceDataset =
       hasPreviousOrder || hasDatatoken
@@ -185,11 +187,19 @@ export default function FormStartCompute({
             algoOrderPriceAndFees?.price ||
               selectedAlgorithmAsset.accessDetails.price
           ).toDecimalPlaces(MAX_DECIMALS)
+    const priceClaim =
+      hasPreviousOrderSelectedComputeAsset || hasDatatokenSelectedComputeAsset
+        ? new Decimal(0)
+        : new Decimal(
+            claimOrderPriceAndFees?.price ||
+              selectedClaimAsset?.accessDetails.price
+          ).toDecimalPlaces(MAX_DECIMALS)
     const providerFees = providerFeeAmount
       ? new Decimal(providerFeeAmount).toDecimalPlaces(MAX_DECIMALS)
       : new Decimal(0)
     const totalPrice = priceDataset
       .plus(priceAlgo)
+      .plus(priceClaim)
       .plus(providerFees)
       .toDecimalPlaces(MAX_DECIMALS)
       .toString()
@@ -197,6 +207,7 @@ export default function FormStartCompute({
   }, [
     asset?.accessDetails,
     selectedAlgorithmAsset?.accessDetails,
+    selectedClaimAsset?.accessDetails,
     hasPreviousOrder,
     hasDatatoken,
     hasPreviousOrderSelectedComputeAsset,
@@ -263,6 +274,7 @@ export default function FormStartCompute({
         selectedComputeAssetTimeout={selectedComputeAssetTimeout}
         hasDatatokenSelectedComputeAsset={hasDatatokenSelectedComputeAsset}
         algorithmConsumeDetails={selectedAlgorithmAsset?.accessDetails}
+        claimConsumeDetails={selectedClaimAsset?.accessDetails}
         symbol={oceanSymbol}
         totalPrice={totalPrice}
         datasetOrderPrice={datasetOrderPrice}

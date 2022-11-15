@@ -110,6 +110,7 @@ export async function queryMetadata(
   cancelToken: CancelToken
 ): Promise<PagedAssets> {
   try {
+    debugger
     const response: AxiosResponse<SearchResponse> = await axios.post(
       `${metadataCacheUri}/api/aquarius/assets/query`,
       { ...query },

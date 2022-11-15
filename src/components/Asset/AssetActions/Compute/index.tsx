@@ -10,7 +10,9 @@ import {
   ComputeEnvironment,
   LoggerInstance,
   ComputeAlgorithm,
+  ComputeClaim,
   ComputeOutput,
+  ComputeClaimOutput,
   ProviderComputeInitializeResults,
   unitsToAmount
 } from '@oceanprotocol/lib'
@@ -45,7 +47,10 @@ import { getOrderPriceAndFees } from '@utils/accessDetailsAndPricing'
 import { handleComputeOrder } from '@utils/order'
 import { getComputeFeedback } from '@utils/feedback'
 import { getDummyWeb3 } from '@utils/web3'
-import { initializeProviderForCompute } from '@utils/provider'
+import {
+  initializeProviderForCompute,
+  computeStartWithClaim
+} from '@utils/provider'
 
 import { useUserPreferences } from '@context/UserPreferences'
 import { setNftMetadata } from '@utils/nft'
@@ -85,12 +90,20 @@ export default function Compute({
   const [hasAlgoAssetDatatoken, setHasAlgoAssetDatatoken] = useState<boolean>()
   const [algorithmDTBalance, setAlgorithmDTBalance] = useState<string>()
 
+  const [hasClaimAssetDatatoken, setHasClaimAssetDatatoken] =
+    useState<boolean>()
+  const [claimDTBalance, setClaimDTBalance] = useState<string>()
+
   const [validOrderTx, setValidOrderTx] = useState('')
   const [validAlgorithmOrderTx, setValidAlgorithmOrderTx] = useState('')
+
+  const [validClaimTx, setValidClaimTx] = useState('')
+  const [validClaimOrderTx, setValidClaimOrderTx] = useState('')
 
   const [isConsumablePrice, setIsConsumablePrice] = useState(true)
   const [isConsumableaAlgorithmPrice, setIsConsumableAlgorithmPrice] =
     useState(true)
+  const [isConsumableaClaimPrice, setIsConsumableClaimPrice] = useState(true)
   const [computeStatusText, setComputeStatusText] = useState('')
   const [computeEnv, setComputeEnv] = useState<ComputeEnvironment>()
   const [initializedProviderResponse, setInitializedProviderResponse] =
@@ -101,7 +114,11 @@ export default function Compute({
     useState<OrderPriceAndFees>()
   const [algoOrderPriceAndFees, setAlgoOrderPriceAndFees] =
     useState<OrderPriceAndFees>()
+  const [claimOrderPriceAndFees, setClaimOrderPriceAndFees] =
+    useState<OrderPriceAndFees>()
   const [isRequestingAlgoOrderPrice, setIsRequestingAlgoOrderPrice] =
+    useState(false)
+  const [isRequestingClaimOrderPrice, setIsRequestingClaimOrderPrice] =
     useState(false)
   const [refetchJobs, setRefetchJobs] = useState(false)
 
@@ -116,6 +133,10 @@ export default function Compute({
 
   const isUnsupportedPricing = asset?.accessDetails?.type === 'NOT_SUPPORTED'
 
+  // console.log(selectedClaimAsset)
+  // console.log(selectedAlgorithmAsset)
+  // console.log(asset)
+
   async function checkAssetDTBalance(asset: DDO): Promise<boolean> {
     if (!asset?.services[0].datatokenAddress) return
     const web3 = await getDummyWeb3(asset?.chainId)
@@ -125,16 +146,17 @@ export default function Compute({
       accountId
     )
     setAlgorithmDTBalance(new Decimal(dtBalance).toString())
+    setClaimDTBalance(new Decimal(dtBalance).toString())
     const hasAlgoDt = Number(dtBalance) >= 1
+    const hasClaimDt = Number(dtBalance) >= 1
     setHasAlgoAssetDatatoken(hasAlgoDt)
+    setHasClaimAssetDatatoken(hasClaimDt)
     return hasAlgoDt
   }
 
   function getCommentString() {
     LoggerInstance.log('[compute] getCommentsString')
-    console.log(selectedClaimAsset)
-    console.log(selectedAlgorithmAsset)
-    console.log(asset)
+
     return (
       selectedAlgorithmAsset.id +
       '|' +
@@ -151,7 +173,7 @@ export default function Compute({
   // Umesh initialize claim
   async function setMetaForClaimNFT() {
     try {
-      debugger
+      // debugger
 
       const result = await getPublishedMeta(
         accountId,
@@ -194,25 +216,35 @@ export default function Compute({
 
   async function initPriceAndFees() {
     try {
+      console.log('*************** 3.1')
       const computeEnv = await getComputeEnviroment(asset)
       if (!computeEnv || !computeEnv.id)
         throw new Error(`Error getting compute environments!`)
-
+      console.log('*************** 3.2')
       setComputeEnv(computeEnv)
+      console.log('*************** 3.3')
+      // console.log('Amit: ', asset)
+      // console.log('Amit: ', selectedAlgorithmAsset)
+      // console.log('Amit: ', selectedClaimAsset)
+      // console.log(claimList)
       const initializedProvider = await initializeProviderForCompute(
         asset,
         selectedAlgorithmAsset,
+        selectedClaimAsset,
         accountId,
         computeEnv
       )
+      console.log('*************** 3.4')
       if (
         !initializedProvider ||
         !initializedProvider?.datasets ||
-        !initializedProvider?.algorithm
+        !initializedProvider?.algorithm ||
+        !initializedProvider?.claim
       )
         throw new Error(`Error initializing provider for the compute job!`)
-
+      console.log('*************** 3.5')
       setInitializedProviderResponse(initializedProvider)
+      console.log('*************** 3.6')
       setProviderFeeAmount(
         await unitsToAmount(
           web3,
@@ -220,17 +252,20 @@ export default function Compute({
           initializedProvider?.datasets?.[0]?.providerFee?.providerFeeAmount
         )
       )
+      console.log('*************** 3.7')
       const computeDuration = (
         parseInt(initializedProvider?.datasets?.[0]?.providerFee?.validUntil) -
         Math.floor(Date.now() / 1000)
       ).toString()
+      console.log('*************** 3.8')
       setComputeValidUntil(computeDuration)
-
+      console.log('*************** 3.9')
       if (
         asset?.accessDetails?.addressOrId !== ZERO_ADDRESS &&
         asset?.accessDetails?.type !== 'free' &&
         initializedProvider?.datasets?.[0]?.providerFee
       ) {
+        console.log('*************** 3.10')
         setComputeStatusText(
           getComputeFeedback(
             asset.accessDetails?.baseToken?.symbol,
@@ -238,22 +273,25 @@ export default function Compute({
             asset.metadata.type
           )[0]
         )
+        console.log('*************** 3.11')
         const datasetPriceAndFees = await getOrderPriceAndFees(
           asset,
           ZERO_ADDRESS,
           initializedProvider?.datasets?.[0]?.providerFee
         )
+        console.log('*************** 3.12', datasetOrderPriceAndFees)
         if (!datasetPriceAndFees)
           throw new Error('Error setting dataset price and fees!')
-
+        console.log('*************** 3.13')
         setDatasetOrderPriceAndFees(datasetPriceAndFees)
+        console.log('*************** 3.14')
       }
-
       if (
         selectedAlgorithmAsset?.accessDetails?.addressOrId !== ZERO_ADDRESS &&
         selectedAlgorithmAsset?.accessDetails?.type !== 'free' &&
         initializedProvider?.algorithm?.providerFee
       ) {
+        console.log('*************** 3.15')
         setComputeStatusText(
           getComputeFeedback(
             selectedAlgorithmAsset?.accessDetails?.baseToken?.symbol,
@@ -261,15 +299,42 @@ export default function Compute({
             selectedAlgorithmAsset?.metadata?.type
           )[0]
         )
+        console.log('*************** 3.16')
         const algorithmOrderPriceAndFees = await getOrderPriceAndFees(
           selectedAlgorithmAsset,
           ZERO_ADDRESS,
           initializedProvider.algorithm.providerFee
         )
+        console.log('*************** 3.17', algorithmOrderPriceAndFees)
         if (!algorithmOrderPriceAndFees)
           throw new Error('Error setting algorithm price and fees!')
-
+        console.log('*************** 3.18')
         setAlgoOrderPriceAndFees(algorithmOrderPriceAndFees)
+        console.log('*************** 3.19')
+      }
+      if (
+        selectedClaimAsset?.accessDetails?.addressOrId !== ZERO_ADDRESS &&
+        selectedClaimAsset?.accessDetails?.type !== 'free' &&
+        initializedProvider?.claim?.providerFee
+      ) {
+        console.log('*************** 3.20')
+        setComputeStatusText(
+          getComputeFeedback(
+            selectedClaimAsset?.accessDetails?.baseToken?.symbol,
+            selectedClaimAsset?.accessDetails?.datatoken?.symbol,
+            selectedClaimAsset?.metadata?.type
+          )[0]
+        )
+        console.log('*************** 3.21')
+        const claimOrderPriceAndFees = await getOrderPriceAndFees(
+          selectedClaimAsset,
+          ZERO_ADDRESS,
+          initializedProvider.claim.providerFee
+        )
+        console.log('*************** 3.22', claimOrderPriceAndFees)
+        if (!claimOrderPriceAndFees)
+          throw new Error('Error setting claim price and fees!')
+        setClaimOrderPriceAndFees(claimOrderPriceAndFees)
       }
     } catch (error) {
       setError(error.message)
@@ -288,24 +353,34 @@ export default function Compute({
     if (!selectedAlgorithmAsset?.accessDetails || !accountId) return
 
     setIsRequestingAlgoOrderPrice(true)
+    setIsRequestingClaimOrderPrice(true)
     setIsConsumableAlgorithmPrice(
       selectedAlgorithmAsset?.accessDetails?.isPurchasable
     )
+    setIsConsumableClaimPrice(selectedClaimAsset?.accessDetails?.isPurchasable)
     setValidAlgorithmOrderTx(
       selectedAlgorithmAsset?.accessDetails?.validOrderTx
     )
-    setAlgoOrderPriceAndFees(null)
+    setValidClaimOrderTx(selectedClaimAsset?.accessDetails?.validOrderTx)
+    // setAlgoOrderPriceAndFees(null)
+    // setClaimOrderPriceAndFees(null)
 
     async function initSelectedAlgo() {
       await checkAssetDTBalance(selectedAlgorithmAsset)
-      await initPriceAndFees()
+      // await initPriceAndFees()
       setIsRequestingAlgoOrderPrice(false)
     }
-
+    async function initSelectedClaim() {
+      await checkAssetDTBalance(selectedClaimAsset)
+      // await initPriceAndFees()
+      setIsRequestingClaimOrderPrice(false)
+    }
     initSelectedAlgo()
-  }, [selectedAlgorithmAsset, accountId])
+    initSelectedClaim()
+  }, [selectedAlgorithmAsset, selectedClaimAsset, accountId])
 
   useEffect(() => {
+    debugger
     if (!asset?.accessDetails || isUnsupportedPricing) return
 
     getAlgorithmsForAsset(asset, newCancelToken()).then((algorithmsAssets) => {
@@ -348,21 +423,28 @@ export default function Compute({
         documentId: selectedAlgorithmAsset.id,
         serviceId: selectedAlgorithmAsset.services[0].id
       }
+      const computeClaim: ComputeClaim = {
+        documentId: selectedClaimAsset.id,
+        serviceId: selectedClaimAsset.services[0].id
+      }
+      console.log('*************** 1')
       const allowed = await isOrderable(
         asset,
         computeService.id,
         computeAlgorithm,
         selectedAlgorithmAsset
       )
+      console.log('*************** 2')
       LoggerInstance.log('[compute] Is dataset orderable?', allowed)
       if (!allowed)
         throw new Error(
           'Dataset is not orderable in combination with selected algorithm.'
         )
 
+      console.log('*************** 3')
       await initPriceAndFees()
-      await setMetaForClaimNFT()
-
+      // await setMetaForClaimNFT()
+      console.log('*************** 4')
       setComputeStatusText(
         getComputeFeedback(
           selectedAlgorithmAsset.accessDetails.baseToken?.symbol,
@@ -370,6 +452,7 @@ export default function Compute({
           selectedAlgorithmAsset.metadata.type
         )[selectedAlgorithmAsset.accessDetails?.type === 'fixed' ? 2 : 3]
       )
+      console.log('*************** 5', algoOrderPriceAndFees)
       // Umesh here change
 
       const algorithmOrderTx = await handleComputeOrder(
@@ -381,8 +464,20 @@ export default function Compute({
         initializedProviderResponse.algorithm,
         computeEnv.consumerAddress
       )
-      if (!algorithmOrderTx) throw new Error('Failed to order algorithm.')
 
+      if (!algorithmOrderTx) throw new Error('Failed to order algorithm.')
+      console.log('*************** 6')
+      const claimOrderTx = await handleComputeOrder(
+        web3,
+        selectedClaimAsset,
+        claimOrderPriceAndFees,
+        accountId,
+        hasClaimAssetDatatoken,
+        initializedProviderResponse.claim,
+        computeEnv.consumerAddress
+      )
+      if (!claimOrderTx) throw new Error('Failed to order claim.')
+      console.log('*************** 7')
       setComputeStatusText(
         getComputeFeedback(
           asset.accessDetails.baseToken?.symbol,
@@ -390,6 +485,7 @@ export default function Compute({
           asset.metadata.type
         )[asset.accessDetails?.type === 'fixed' ? 2 : 3]
       )
+      console.log('*************** 8')
       const datasetOrderTx = await handleComputeOrder(
         web3,
         asset,
@@ -400,36 +496,54 @@ export default function Compute({
         computeEnv.consumerAddress
       )
       if (!datasetOrderTx) throw new Error('Failed to order dataset.')
-
+      console.log('*************** 9')
       LoggerInstance.log('[compute] Starting compute job.')
       const computeAsset: ComputeAsset = {
         documentId: asset.id,
         serviceId: asset.services[0].id,
         transferTxId: datasetOrderTx
       }
+      console.log('*************** 10')
       computeAlgorithm.transferTxId = algorithmOrderTx
       const output: ComputeOutput = {
         publishAlgorithmLog: true,
         publishOutput: true
       }
+      console.log('*************** 11')
+      computeClaim.transferTxId = claimOrderTx
+      const claimOutput: ComputeClaimOutput = {
+        publishClaimLog: true,
+        publishOutput: true
+      }
+      console.log('*************** 12')
       setComputeStatusText(getComputeFeedback()[4])
-      const response = await ProviderInstance.computeStart(
+      console.log('Amit: ', computeEnv)
+      console.log('Amit: ', computeAsset)
+      console.log('Amit: ', computeAlgorithm)
+      // const response = await ProviderInstance.computeStart(
+      const response = await computeStartWithClaim(
         asset.services[0].serviceEndpoint,
         web3,
         accountId,
         computeEnv?.id,
         computeAsset,
         computeAlgorithm,
+        computeClaim,
         newAbortController(),
         null,
-        output
+        output,
+        claimOutput
       )
       if (!response) throw new Error('Error starting compute job.')
-
+      console.log('*************** 13')
       LoggerInstance.log('[compute] Starting compute job response: ', response)
+      console.log('*************** 14')
       setIsOrdered(true)
+      console.log('*************** 15')
       setRefetchJobs(!refetchJobs)
+      console.log('*************** 16')
       initPriceAndFees()
+      console.log('*************** 17')
     } catch (error) {
       setError(error.message)
       LoggerInstance.error(`[compute] ${error.message} `)

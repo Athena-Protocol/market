@@ -125,13 +125,14 @@ export async function isOrderable(
 export function getValidUntilTime(
   computeEnvMaxJobDuration: number,
   datasetTimeout?: number,
-  algorithmTimeout?: number
+  algorithmTimeout?: number,
+  claimTimeout?: number
 ) {
   const inputValues = []
   computeEnvMaxJobDuration && inputValues.push(computeEnvMaxJobDuration)
   datasetTimeout && inputValues.push(datasetTimeout)
   algorithmTimeout && inputValues.push(algorithmTimeout)
-
+  claimTimeout && inputValues.push(claimTimeout)
   const minValue = Math.min(...inputValues)
   const mytime = new Date()
   mytime.setMinutes(mytime.getMinutes() + Math.floor(minValue / 60))
@@ -186,13 +187,13 @@ export function getQueryStringClaims(
     sort: { sortBy: SortTermOptions.Created },
     filters: [getFilterTerm('metadata.type', 'claims')]
   } as BaseQueryParams
-  algorithmDidList?.length > 0 &&
-    baseParams.filters.push(getFilterTerm('_id', algorithmDidList))
-  trustedPublishersList?.length > 0 &&
-    baseParams.filters.push(getFilterTerm('nft.owner', trustedPublishersList))
+  // algorithmDidList?.length > 0 &&
+  //   baseParams.filters.push(getFilterTerm('_id', algorithmDidList))
+  // trustedPublishersList?.length > 0 &&
+  //   baseParams.filters.push(getFilterTerm('nft.owner', trustedPublishersList))
   const query = generateBaseQuery(baseParams)
 
-  console.log('Tripathi' + query)
+  console.log('Tripathi qyery *****************' + query)
   return query
 }
 
@@ -246,7 +247,7 @@ export async function getClaimsForAsset(
   token: CancelToken
 ): Promise<Asset[]> {
   const computeService: Service = getServiceByName(asset, 'compute')
-
+  debugger
   if (
     !computeService.compute ||
     (computeService.compute.publisherTrustedAlgorithms?.length === 0 &&
@@ -265,7 +266,7 @@ export async function getClaimsForAsset(
   )
 
   const algorithms: Asset[] = gueryResults?.results
-  console.log('Tripathi')
+  console.log('------------------------Tripathi')
   console.log(algorithms)
   return algorithms
 }

@@ -22,30 +22,30 @@ export default function MetaFull({ ddo }: { ddo: Asset }): ReactElement {
     return <span>{`${image}:${tag}`}</span>
   }
 
-  useEffect(() => {
-    async function init() {
-      setLoading(true)
+  // useEffect(() => {
+  //   async function init() {
+  //     setLoading(true)
 
-      try {
-        const assets: Asset[] = []
-        const result = await getPublishedMeta(
-          null,
-          chainIds,
-          null,
-          1,
-          null,
-          ddo?.id
-        )
-        setAssets(result.results)
-        console.log(assets)
-        setLoading(false)
-      } catch (error) {
-        LoggerInstance.error(error.message)
-        setLoading(false)
-      }
-    }
-    init()
-  }, [])
+  //     try {
+  //       const assets: Asset[] = []
+  //       const result = await getPublishedMeta(
+  //         null,
+  //         chainIds,
+  //         null,
+  //         1,
+  //         null,
+  //         ddo?.id
+  //       )
+  //       setAssets(result.results)
+  //       console.log(assets)
+  //       setLoading(false)
+  //     } catch (error) {
+  //       LoggerInstance.error(error.message)
+  //       setLoading(false)
+  //     }
+  //   }
+  //   init()
+  // }, [])
 
   return ddo ? (
     <div className={styles.metaFull}>

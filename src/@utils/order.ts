@@ -39,6 +39,7 @@ export async function order(
 ): Promise<TransactionReceipt> {
   const datatoken = new Datatoken(web3)
   const config = getOceanConfig(asset.chainId)
+  console.log('*************** 5.4.1')
 
   const initializeData =
     !providerFees &&
@@ -49,6 +50,7 @@ export async function order(
       accountId,
       asset.services[0].serviceEndpoint
     ))
+  console.log('*************** 5.4.2')
 
   const orderParams = {
     consumer: computeConsumerAddress || accountId,
@@ -62,9 +64,12 @@ export async function order(
         '0x0000000000000000000000000000000000000000'
     }
   } as OrderParams
+  console.log('*************** 5.4.3')
 
   switch (asset.accessDetails?.type) {
     case 'fixed': {
+      console.log('*************** 5.4.4', orderPriceAndFees)
+
       // this assumes all fees are in ocean
       const txApprove = await approve(
         web3,
@@ -79,6 +84,8 @@ export async function order(
         ),
         false
       )
+      console.log('*************** 5.4.5')
+
       if (!txApprove) {
         return
       }
@@ -98,16 +105,20 @@ export async function order(
         orderParams,
         freParams
       )
+      console.log('*************** 5.4.6')
 
       return tx
     }
     case 'free': {
+      console.log('*************** 5.4.7')
       const tx = await datatoken.buyFromDispenserAndOrder(
         asset.services[0].datatokenAddress,
         accountId,
         orderParams,
         config.dispenserAddress
       )
+      console.log('*************** 5.4.8')
+
       return tx
     }
   }
@@ -225,6 +236,8 @@ export async function handleComputeOrder(
   try {
     // Return early when valid order is found, and no provider fees
     // are to be paid
+    console.log('*************** 5.1')
+
     if (initializeData?.validOrder && !initializeData.providerFee) {
       LoggerInstance.log(
         '[compute] Has valid order: ',
@@ -232,6 +245,7 @@ export async function handleComputeOrder(
       )
       return asset?.accessDetails?.validOrderTx
     }
+    console.log('*************** 5.2')
 
     // Approve potential Provider fee amount first
     if (initializeData?.providerFee?.providerFeeAmount !== '0') {
@@ -247,6 +261,7 @@ export async function handleComputeOrder(
 
       LoggerInstance.log('[compute] Approved provider fees:', txApproveProvider)
     }
+    console.log('*************** 5.3')
 
     if (initializeData?.validOrder) {
       LoggerInstance.log('[compute] Calling reuseOrder ...', initializeData)
@@ -261,6 +276,7 @@ export async function handleComputeOrder(
       LoggerInstance.log('[compute] Reused order:', txReuseOrder)
       return txReuseOrder?.transactionHash
     }
+    console.log('*************** 5.4')
 
     LoggerInstance.log('[compute] Calling order ...', initializeData)
     const txStartOrder = await startOrder(
@@ -273,6 +289,8 @@ export async function handleComputeOrder(
       computeConsumerAddress
     )
     LoggerInstance.log('[compute] Order succeeded', txStartOrder)
+    console.log('*************** 5.6')
+
     return txStartOrder?.transactionHash
   } catch (error) {
     toast.error(error.message)
