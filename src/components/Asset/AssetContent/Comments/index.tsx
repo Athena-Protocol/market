@@ -35,7 +35,7 @@ function getComments(metaAssets: Asset[], ddo: Asset): CommentMetaDataItem[] {
     }
     comments.sort((x) => x.time).reverse()
   }
-  console.log('Umesh printing comments')
+  // console.log('Umesh printing comments')
   console.log(comments)
   return comments
 }
@@ -55,9 +55,9 @@ export default function Comments({
   const emptyText =
     chainIds.length === 0 ? 'No network selected.' : 'No results found.'
 
-  console.log(assets)
+  // console.log(assets)
   const comments = getComments(assets, ddo)
-  console.log('Umesh ', comments, ddo)
+  // console.log('Umesh ', comments, ddo)
   return (
     <div className={styles.metaItem}>
       <h3 className={styles.title}>{title}</h3>

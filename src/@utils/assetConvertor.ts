@@ -52,13 +52,21 @@ export async function transformClaimToAssetSelection(
   const algorithmList: AssetSelectionAsset[] = []
 
   for (const asset of extendedAssets) {
-    const algoComputeService = getServiceByName(asset, 'compute')
+    // debugger
+    const algoComputeService = getServiceByName(asset, 'access')
 
-    // if (
-    //   asset?.accessDetails?.price &&
-    //   algoComputeService?.serviceEndpoint === datasetProviderEndpoint
-    // )
-    {
+    console.log(
+      'Values ',
+      asset?.accessDetails?.price,
+      algoComputeService?.serviceEndpoint,
+      asset,
+      datasetProviderEndpoint
+    )
+    if (
+      asset?.accessDetails?.price &&
+      algoComputeService?.serviceEndpoint === datasetProviderEndpoint
+    ) {
+      console.log('Claim  ', asset)
       let selected = false
       selectedAlgorithms?.forEach((algorithm: PublisherTrustedAlgorithm) => {
         if (algorithm.did === asset.id) {
@@ -77,5 +85,6 @@ export async function transformClaimToAssetSelection(
         : algorithmList.push(algorithmAsset)
     }
   }
+  console.log('Claims list ', algorithmList)
   return algorithmList
 }

@@ -37,7 +37,7 @@ export default function MetaFull({ ddo }: { ddo: Asset }): ReactElement {
           ddo?.id
         )
         setAssets(result.results)
-        console.log(assets)
+        // console.log(assets)
         setLoading(false)
       } catch (error) {
         LoggerInstance.error(error.message)
