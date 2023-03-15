@@ -7,12 +7,11 @@ export function getOceanConfig(network: string | number): Config {
     config = {
       chainId: 44787,
       network: 'alfajores',
-      metadataCacheUri:
-        'http://k8s-ocean-aquarius-b554423a5e-707781634.us-east-1.elb.amazonaws.com',
+      metadataCacheUri: 'http://aquarius.athenaprotocol.tech',
       nodeUri: 'https://alfajores-forno.celo-testnet.org',
-      providerUri: 'http://34.232.48.194:8030',
+      providerUri: 'http://provider.athenaprotocol.tech',
       // subgraphUri: 'https://v4.subgraph.mumbai.oceanprotocol.com',
-      subgraphUri: 'http://34.232.48.194:9000',
+      subgraphUri: 'http://subgraph.athenaprotocol.tech',
       explorerUri: 'https://alfajores-blockscout.celo-testnet.org',
       oceanTokenAddress: '0xd8992Ed72C445c35Cb4A2be468568Ed1079357c8',
       oceanTokenSymbol: 'OCEAN',

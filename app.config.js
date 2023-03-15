@@ -8,7 +8,7 @@ module.exports = {
   metadataCacheUri:
     process.env.NEXT_PUBLIC_METADATACACHE_URI ||
     //'https://v4.aquarius.oceanprotocol.com',
-    'http://k8s-ocean-aquarius-b554423a5e-707781634.us-east-1.elb.amazonaws.com',
+    'http://aquarius.athenaprotocol.tech',
 
   v3MetadataCacheUri:
     process.env.NEXT_PUBLIC_V3_METADATACACHE_URI ||
